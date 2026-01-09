@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"/>
+  <title>Scalper FULL TABS v2</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <style>
+    :root{--bg:#0e1117;--surface:#0f1522;--card:#141a2a;--line:#21283b;--text:#e6ecff;--muted:#9fb0d0;--accent:#5aa0ff;--ok:#10b981;--warn:#f59e0b;--err:#ef4444}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 system-ui,Segoe UI,Roboto,Arial,sans-serif}
+    header{background:#0b1020;border-bottom:1px solid var(--line);padding:14px 18px;position:sticky;top:0;z-index:5}
+    h1{font-size:18px;margin:0}
+    .wrap{max-width:1200px;margin:0 auto;padding:16px}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+    .tab{padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#12182a;color:#cfe0ff;cursor:pointer}
+    .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+    .card h3{margin:0 0 10px 0;font-size:15px}
+    table{border-collapse:collapse;width:100%}
+    th,td{border-bottom:1px solid var(--line);padding:8px;text-align:left;font-size:13px}
+    th{color:#c3d2ee}
+    .btn{padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#1a2340;color:#e6ecff;cursor:pointer}
+    .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+    .btn.ghost{background:transparent}
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    .tags{display:flex;flex-wrap:wrap;gap:6px}
+    .tag{padding:4px 8px;background:#192240;border:1px solid var(--line);border-radius:999px;font-size:12px;color:#cfe0ff}
+    .log{max-height:300px;overflow:auto;background:#0d1326;border:1px solid var(--line);padding:8px;border-radius:10px;font:12px ui-monospace,Consolas,monospace;color:#bfd0f2}
+    input,select{background:#0b1328;border:1px solid var(--line);color:#e6ecff;border-radius:8px;padding:6px 8px}
+    .muted{color:var(--muted)}
+    .hint{font-size:12px;color:#8ea6c9}
+  </style>
+</head>
+<body>
+  <header><div class="wrap"><h1>Scalper — FULL TABS v2</h1></div></header>
+  <div class="wrap">
+    <div class="tabs">
+      <div class="tab active" data-tab="live">Live</div>
+      <div class="tab" data-tab="data">Данные/Универсум</div>
+      <div class="tab" data-tab="opt">Оптимизация</div>
+      <div class="tab" data-tab="settings">Настройки</div>
+    </div>
+
+    <div id="live" class="tabpage">
+      <div class="grid">
+        <div class="card">
+          <h3>Состояние</h3>
+          <div>Статус: <b id="st">—</b></div>
+          <div class="muted" style="margin-top:4px">Последний цикл: <span id="last">—</span></div>
+          <div class="muted" style="margin-top:4px">Включены (Live):</div>
+          <div class="tags" id="enabled"></div>
+          <div class="row" style="margin-top:10px">
+            <button class="btn primary" onclick="actionStart()">Старт</button>
+            <button class="btn" onclick="actionStop()">Стоп</button>
+            <button class="btn" onclick="forceCycle()">Прогнать цикл</button>
+            <button class="btn ghost" onclick="refresh()">Обновить</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Позиции</h3>
+          <table id="positions"></table>
+        </div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <h3>Логи</h3>
+        <div id="log" class="log"></div>
+      </div>
+    </div>
+
+    <div id="data" class="tabpage" style="display:none">
+      <div class="card">
+        <h3>Данные / Универсум</h3>
+        <div>Размер универсума: <b id="uni_size">0</b></div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" onclick="rebuildUniverse()">Пересобрать универсум</button>
+          <button class="btn" onclick="backfill(1)">Подкачать 1 день</button>
+          <button class="btn" onclick="backfill(2)">Подкачать 2 дня</button>
+        </div>
+        <div id="uni_list" class="tags" style="margin-top:10px"></div>
+        <div class="hint" style="margin-top:8px">Если список пуст — сначала «Пересобрать универсум», затем «Подкачать».</div>
+      </div>
+    </div>
+
+    <div id="opt" class="tabpage" style="display:none">
+      <div class="grid">
+        <div class="card">
+          <h3>Запуск оптимизации</h3>
+          <div class="row">
+            <button class="btn primary" onclick="optimize(1)">Optimize 1 day (оба)</button>
+            <button class="btn" onclick="optimize(2)">Optimize 2 days (оба)</button>
+          </div>
+          <div class="muted" style="margin-top:8px">Статус: <span id="opt_status">—</span></div>
+        </div>
+        <div class="card">
+          <h3>Профили (топ)</h3>
+          <div class="row" style="margin-bottom:6px">
+            <button class="btn" onclick="enableTop()">Включить топ‑40 в Live</button>
+            <button class="btn ghost" onclick="refreshProfiles()">Обновить список</button>
+          </div>
+          <table id="profiles"></table>
+        </div>
+      </div>
+    </div>
+
+    <div id="settings" class="tabpage" style="display:none">
+      <div class="card">
+        <h3>Параметры канала (дефолты)</h3>
+        <div class="row">
+          <label>Режим: 
+            <select id="mode"><option value="donchian">Donchian</option><option value="trend">Trend</option></select>
+          </label>
+        </div>
+        <div class="row" style="margin-top:6px">
+          <span>Donchian окно <input id="ch_window" type="number" value="60" style="width:90px"></span>
+          <span>Entry touch <input id="entry_touch" type="checkbox"></span>
+          <span>Avoid mid % <input id="avoid_mid_pct" type="number" value="5" style="width:90px"></span>
+          <span>SL×width <input id="sl_outside_mult" type="number" value="0.3" step="0.1" style="width:90px"></span>
+        </div>
+        <div class="row" style="margin-top:6px">
+          <span>Trend TW <input id="trend_window" type="number" value="60" style="width:90px"></span>
+          <span>ATR W <input id="atr_window" type="number" value="14" style="width:90px"></span>
+          <span>ATR× <input id="atr_mult" type="number" value="1.3" step="0.1" style="width:90px"></span>
+          <span>slope_min <input id="slope_min" type="number" value="0.0002" step="0.00001" style="width:110px"></span>
+        </div>
+        <div class="row" style="margin-top:6px">
+          <span>pullback % <input id="pullback_pct" type="number" value="0.15" step="0.01" style="width:110px"></span>
+          <span>tp ticks % <input id="tp_ticks_pct" type="number" value="0.35" step="0.05" style="width:110px"></span>
+          <span>timeout bars <input id="timeout_bars" type="number" value="30" style="width:110px"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Общие</h3>
+        <div class="row">
+          <span>Timeframe <input id="timeframe" value="1m" style="width:70px"></span>
+          <span>Liquidity 24h USD <input id="min_usd_24h" type="number" value="15000" style="width:110px"></span>
+          <span>Universe limit <input id="universe_limit" type="number" value="150" style="width:110px"></span>
+          <span>Symbols limit <input id="symbols_limit" type="number" value="150" style="width:110px"></span>
+        </div>
+        <div class="row" style="margin-top:6px">
+          <span>Paper <input id="paper_mode" type="checkbox" checked></span>
+          <span>Cycle (min) <input id="schedule_minutes" type="number" value="1" style="width:70px"></span>
+          <span>Autostart <input id="autostart" type="checkbox" checked></span>
+        </div>
+        <div class="row" style="margin-top:6px">
+          <span>Risk per trade <input id="qpt" type="number" value="40" style="width:90px"></span>
+          <span>Max open <input id="max_open" type="number" value="5" style="width:90px"></span>
+          <span>fee bps <input id="fee_bps" type="number" value="7" style="width:90px"></span>
+          <span>slip bps <input id="slip_bps" type="number" value="2" style="width:90px"></span>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" onclick="saveCommon()">Сохранить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    console.log('FULL-TABS v2 loaded');
+    const API = "http://127.0.0.1:8080";
+
+    // fetch with XHR fallback (just in case старый FF)
+    function http(method, path, body){
+      if (window.fetch){
+        return fetch(API+path, {
+          method: method,
+          headers: {"Content-Type":"application/json"},
+          body: method==='GET'? undefined : JSON.stringify(body||{})
+        }).then(r=>{
+          if(!r.ok) throw new Error(method+' '+path+' HTTP '+r.status);
+          return r.text();
+        }).then(t=>{ try{return JSON.parse(t);}catch(e){ throw new Error('Parse '+path+': '+e+'\\n'+t) }});
+      }
+      return new Promise(function(resolve,reject){
+        try{
+          var x=new XMLHttpRequest();
+          x.open(method, API+path, true);
+          if(method!=='GET') x.setRequestHeader('Content-Type','application/json');
+          x.onreadystatechange=function(){
+            if(x.readyState==4){
+              if(x.status!=200){ reject(new Error(method+' '+path+' HTTP '+x.status+'\\n'+(x.responseText||''))); return; }
+              try{ resolve(JSON.parse(x.responseText)); }catch(e){ reject(new Error('Parse '+path+': '+e+'\\n'+(x.responseText||''))); }
+            }
+          };
+          x.send(method==='GET'? null : JSON.stringify(body||{}));
+        }catch(e){ reject(e); }
+      });
+    }
+    function jget(p){ return http('GET', p); }
+    function jpost(p,b){ return http('POST', p, b); }
+
+    function $(id){ return document.getElementById(id); }
+    document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      document.querySelectorAll('.tabpage').forEach(x=>x.style.display='none');
+      t.classList.add('active'); $(t.dataset.tab).style.display='block';
+      if(t.dataset.tab==='data') refreshUniverse();
+      if(t.dataset.tab==='opt') { refreshProfiles(); pollOpt(); }
+      if(t.dataset.tab==='settings') refresh();
+    });
+
+    async function refresh(){
+      try{
+        const st = await jget('/api/status');
+        $('st').innerText = st.running ? 'РАБОТАЕТ' : 'ОЖИДАЕТ';
+        $('last').innerText = st.last_run || '—';
+        $('enabled').innerHTML = (st.enabled||[]).map(s=>`<span class="tag">${s}</span>`).join(' ');
+
+        const ps = await jget('/api/positions');
+        const rows = Object.entries(ps.positions||{}).map(([s,p])=>`<tr><td>${s}</td><td>${p.side}</td><td>${p.qty}</td><td>${(p.entry||0).toFixed(6)}</td><td>${p.bars_open||0}</td><td><button class="btn" onclick="closePos('${s}')">Закрыть</button></td></tr>`).join('');
+        $('positions').innerHTML = '<tr><th>Пара</th><th>Сторона</th><th>Qty</th><th>Entry</th><th>Bars</th><th></th></tr>'+rows;
+
+        $('log').innerHTML = (st.log||[]).slice(-300).reverse().map(x=>`<div>${x}</div>`).join('');
+
+        // settings populate
+        const c = st.config||{}; const ch = c.channel||{};
+        $('mode').value = ch.mode || 'donchian';
+        $('ch_window').value = ch.ch_window || 60; $('entry_touch').checked = !!ch.entry_touch; $('avoid_mid_pct').value = ch.avoid_mid_pct || 5; $('sl_outside_mult').value = ch.sl_outside_mult || 0.3;
+        $('trend_window').value = ch.trend_window || 60; $('atr_window').value = ch.atr_window || 14; $('atr_mult').value = ch.atr_mult || 1.3; $('slope_min').value = ch.slope_min || 0.0002;
+        $('pullback_pct').value = ch.pullback_pct || 0.15; $('tp_ticks_pct').value = ch.tp_ticks_pct || 0.35; $('timeout_bars').value = ch.timeout_bars || 30;
+
+        $('timeframe').value = c.timeframe || '1m'; $('min_usd_24h').value = c.min_usd_24h || 15000; $('universe_limit').value = c.universe_limit || 150; $('symbols_limit').value = c.symbols_limit || 150;
+        $('paper_mode').checked = !!c.paper_mode; $('schedule_minutes').value = c.schedule_minutes || 1; $('autostart').checked = !!c.autostart;
+        $('qpt').value = (c.risk&&c.risk.quote_per_trade)||40; $('max_open').value = (c.risk&&c.risk.max_open_symbols)||5; $('fee_bps').value = (c.risk&&c.risk.fee_bps)||7; $('slip_bps').value = (c.risk&&c.risk.slip_bps)||2;
+      }catch(e){ console.error(e); alert(e.message); }
+    }
+    async function actionStart(){ await jpost('/api/action',{action:'start'}); refresh(); }
+    async function actionStop(){ await jpost('/api/action',{action:'stop'}); refresh(); }
+    async function forceCycle(){ await jpost('/api/force_cycle',{}); refresh(); }
+    async function closePos(s){ await jpost('/api/close',{symbol:s}); refresh(); }
+
+    // Data / Universe
+    async function refreshUniverse(){
+      try{
+        const st = await jget('/api/status');
+        $('uni_size').innerText = (st.universe||[]).length;
+        $('uni_list').innerHTML = (st.universe||[]).map(s=>`<span class="tag">${s}</span>`).join(' ');
+      }catch(e){ console.error(e); }
+    }
+    async function rebuildUniverse(){ await jpost('/api/universe/rebuild',{}); refreshUniverse(); }
+    async function backfill(d){ await jpost('/api/backfill',{days:d}); alert('Backfill запущен'); }
+
+    // Optimization
+    async function optimize(days){ await jpost('/api/optimize',{days:days, scope:'all', modes:['donchian','trend']}); pollOpt(); }
+    async function pollOpt(){
+      try{
+        const s = await jget('/api/optimize/status');
+        $('opt_status').innerText = s.running ? ('Идёт… '+s.progress+'/'+s.total+' ('+(s.last_msg||'')+')') : 'Готово';
+        if(s.running) setTimeout(pollOpt, 1800); else refreshProfiles();
+      }catch(e){ console.error(e); }
+    }
+    async function refreshProfiles(){
+      try{
+        const p = await jget('/api/profiles');
+        const rows = (p.profiles||[]).sort((a,b)=> (b.best.score||0)-(a.best.score||0)).slice(0,80)
+          .map(x=>`<tr><td>${x.symbol}</td><td>${x.best.mode}</td><td>${x.best.pf}</td><td>${x.best.mdd}</td><td>${x.best.trades}</td><td>${x.best.score}</td></tr>`).join('');
+        $('profiles').innerHTML = '<tr><th>Symbol</th><th>Mode</th><th>PF</th><th>MDD%</th><th>Trades</th><th>Score</th></tr>'+rows;
+      }catch(e){ console.error(e); }
+    }
+    async function enableTop(){
+      const p = await jget('/api/profiles');
+      const syms = (p.profiles||[]).sort((a,b)=> (b.best.score||0)-(a.best.score||0)).slice(0,40).map(x=>x.symbol);
+      await jpost('/api/trade/enable',{symbols:syms,enabled:true}); refresh();
+    }
+
+    // Settings
+    async function saveCommon(){
+      const body={ timeframes:undefined,
+        timeframe:$('timeframe').value, min_usd_24h:+$('min_usd_24h').value, universe_limit:+$('universe_limit').value, symbols_limit:+$('symbols_limit').value,
+        paper_mode:$('paper_mode').checked, schedule_minutes:+$('schedule_minutes').value, autostart:$('autostart').checked,
+        risk:{ quote_per_trade:+$('qpt').value, max_open_symbols:+$('max_open').value, fee_bps:+$('fee_bps').value, slip_bps:+$('slip_bps').value },
+        channel:{
+          mode:$('mode').value, ch_window:+$('ch_window').value, entry_touch:$('entry_touch').checked, avoid_mid_pct:+$('avoid_mid_pct').value, sl_outside_mult:+$('sl_outside_mult').value,
+          trend_window:+$('trend_window').value, atr_window:+$('atr_window').value, atr_mult:+$('atr_mult').value, slope_min:+$('slope_min').value,
+          pullback_pct:+$('pullback_pct').value, tp_ticks_pct:+$('tp_ticks_pct').value, timeout_bars:+$('timeout_bars').value, trailing:true
+        }
+      };
+      await jpost('/api/config', body); alert('Сохранено'); refresh();
+    }
+
+    refresh(); setInterval(()=>{ if(document.querySelector('.tab.active').dataset.tab==='live') refresh(); }, 6000);
+  </script>
+</body>
+</html>
